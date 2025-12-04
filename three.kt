@@ -5,6 +5,7 @@ import androidx.databinding.ObservableBoolean
 import com.codility.scheduler.SchedulerFacade
 import com.codility.ui.navigation.SubmitEmailRouter
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.Single
 
 class SignUpToNewsletterViewModel(
     private val submitEmailUseCase: SubmitEmailUseCase,
@@ -22,8 +23,8 @@ class SignUpToNewsletterViewModel(
 
     init {
         // Set up input validation
-        input.addOnPropertyChangedCallback(object : android.databinding.Observable.OnPropertyChangedCallback() {
-            override fun onPropertyChanged(sender: android.databinding.Observable?, propertyId: Int) {
+        input.addOnPropertyChangedCallback(object : ObservableField.OnPropertyChangedCallback() {
+            override fun onPropertyChanged(sender: ObservableField<*>, propertyId: Int) {
                 validateEmail()
             }
         })

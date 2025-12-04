@@ -1,42 +1,38 @@
-package com.codility
+package com.codility;
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.reflect.TypeToken
-import java.io.InputStream
-import java.io.InputStreamReader
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.reflect.TypeToken;
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Type;
+import java.util.List;
 
-// PostEntity data class
-data class PostEntity(
-    val id: String,
-    val authorId: String,
-    val content: String,
-    val viewCount: Int,
-    val timestamp: String
-)
-
-// JsonParser class
-class JsonParser {
-    // Reuse Gson instance for efficiency
-    private val gson: Gson = GsonBuilder()
-        .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-        .create()
-    
-    // Cache the TypeToken to avoid recreating it
-    private val listType = object : TypeToken<List<PostEntity>>() {}.type
-
-    fun parse(inputStream: InputStream): List<PostEntity> {
-        return try {
-            // Use InputStreamReader directly for efficiency
-            inputStream.use { stream ->
-                InputStreamReader(stream).use { reader ->
-                    val result = gson.fromJson<List<PostEntity>>(reader, listType)
-                    result ?: emptyList()
+public class JsonParser {
+    public List<PostEntity> parse(InputStream inputStream) throws Exception {
+        DateTimeFormatter formatter = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        
+        Gson gson = new GsonBuilder()
+            .registerTypeAdapter(DateTime.class, new JsonDeserializer<DateTime>() {
+                @Override
+                public DateTime deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) {
+                    return formatter.parseDateTime(json.getAsString());
                 }
-            }
-        } catch (e: Exception) {
-            // Return empty list in case of any parsing errors
-            emptyList()
+            })
+            .create();
+        
+        try {
+            List<PostEntity> result = gson.fromJson(new InputStreamReader(inputStream), 
+                new TypeToken<List<PostEntity>>(){}.getType());
+            return result != null ? result : List.of();
+        } catch (Exception e) {
+            return List.of();
         }
     }
 }

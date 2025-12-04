@@ -1,6 +1,7 @@
 package com.codility.mvp
 
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 
 class Presenter(
@@ -11,34 +12,20 @@ class Presenter(
     private val disposables = CompositeDisposable()
 
     init {
-        loadElements()
-    }
-
-    private fun loadElements() {
-        // Show loading state
-        view.showLoading()
-        
-        val disposable = elementsProvider.getElements()
+        val disposable = elementsProvider.downloadElements()
             .subscribeOn(schedulerFacade.io())
             .observeOn(schedulerFacade.mainThread())
+            .doOnSubscribe { view.showLoading() }
             .subscribe(
                 { elements ->
-                    if (elements.isEmpty()) {
-                        view.showEmpty()
-                    } else {
-                        view.showElements(elements)
+                    when {
+                        elements.isEmpty() -> view.showEmpty()
+                        else -> view.showElements(elements)
                     }
                 },
-                { error ->
-                    view.showError(error.message ?: "Unknown error")
-                }
+                { _ -> view.showError() }
             )
-            
         disposables.add(disposable)
-    }
-
-    fun onRefresh() {
-        loadElements()
     }
 
     fun onDestroy() {
@@ -46,18 +33,18 @@ class Presenter(
     }
 }
 
-// Supporting interfaces and classes that would be defined elsewhere:
+// Required interfaces (these should match what's expected by the platform)
 interface ListContract {
     interface View {
         fun showLoading()
         fun showElements(elements: List<String>)
-        fun showError(message: String)
+        fun showError()
         fun showEmpty()
     }
 }
 
 interface ElementsProvider {
-    fun getElements(): io.reactivex.Single<List<String>>
+    fun downloadElements(): Single<List<String>>
 }
 
 interface SchedulerFacade {

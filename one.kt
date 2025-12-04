@@ -1,31 +1,37 @@
 package com.codility.mvp
 
 import io.reactivex.disposables.CompositeDisposable
-import io.reactivex.Single
-import io.reactivex.schedulers.Schedulers
+
 
 class Presenter(
-    private val view: ListContract.View,
-    private val elementsProvider: ElementsProvider,
-    private val schedulerFacade: SchedulerFacade
+    view: ListContract.View,
+     elementsProvider: ElementsProvider,
+     schedulerFacade: SchedulerFacade
 ) {
-    private val disposables = CompositeDisposable()
+     val disposables = CompositeDisposable()
 
     init {
-        val disposable = elementsProvider.downloadElements()
-            .subscribeOn(schedulerFacade.io())
-            .observeOn(schedulerFacade.mainThread())
-            .doOnSubscribe { view.showLoading() }
-            .subscribe(
-                { elements ->
-                    when {
-                        elements.isEmpty() -> view.showEmpty()
-                        else -> view.showElements(elements)
+        disposables.add(
+            elementsProvider.loadElements()
+                .subscribeOn(schedulerFacade.background)
+                .observeOn(schedulerFacade.main)
+                .doOnSubscribe { view.showLoading() }
+                .subscribe(
+                    { elements ->
+                        if (elements.isEmpty()) {
+                            // Handle empty list - using existing methods
+                            view.showEmptyList()
+                        } else {
+                            // Show elements - using existing methods
+                            view.showList(elements)
+                        }
+                    },
+                    { _ -> 
+                        // Show error without parameters
+                        view.showError() 
                     }
-                },
-                { _ -> view.showError() }
-            )
-        disposables.add(disposable)
+                )
+        )
     }
 
     fun onDestroy() {

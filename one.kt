@@ -1,34 +1,37 @@
 package com.codility.mvp
 
 import io.reactivex.disposables.CompositeDisposable
-
+import io.reactivex.Single
+import io.reactivex.android.schedulers.AndroidSchedulers
+import io.reactivex.schedulers.Schedulers
 
 class Presenter(
-    view: ListContract.View,
-     elementsProvider: ElementsProvider,
-     schedulerFacade: SchedulerFacade
+    private val view: ListContract.View,
+    private val elementsProvider: ElementsProvider,
+    private val schedulerFacade: SchedulerFacade
 ) {
-     val disposables = CompositeDisposable()
+    private val disposables = CompositeDisposable()
 
     init {
+        loadElements()
+    }
+
+    private fun loadElements() {
         disposables.add(
-            elementsProvider.loadElements()
-                .subscribeOn(schedulerFacade.background)
-                .observeOn(schedulerFacade.main)
+            elementsProvider.downloadElements()
+                .subscribeOn(schedulerFacade.io())
+                .observeOn(schedulerFacade.mainThread())
                 .doOnSubscribe { view.showLoading() }
                 .subscribe(
                     { elements ->
                         if (elements.isEmpty()) {
-                            // Handle empty list - using existing methods
-                            view.showEmptyList()
+                            view.showEmpty()
                         } else {
-                            // Show elements - using existing methods
-                            view.showList(elements)
+                            view.showElements(elements)
                         }
                     },
                     { _ -> 
-                        // Show error without parameters
-                        view.showError() 
+                        view.showError()
                     }
                 )
         )
@@ -39,7 +42,6 @@ class Presenter(
     }
 }
 
-// Required interfaces (these should match what's expected by the platform)
 interface ListContract {
     interface View {
         fun showLoading()
